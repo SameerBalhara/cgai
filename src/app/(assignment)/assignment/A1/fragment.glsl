@@ -188,6 +188,51 @@ Hit hitBox(const Ray r, const Box b)
 	
     /* your implementation starts */
 
+    mat3 invRot = transpose(b.rot);
+
+    vec3 rayOri = invRot * (r.ori - b.ori);
+    vec3 rayDir = invRot * r.dir;
+
+    vec3 boxMin = -b.halfWidth;
+    vec3 boxMax = b.halfWidth;
+    
+    vec3 t0 = (boxMin - rayOri) / rayDir;
+    vec3 t1 = (boxMax - rayOri) / rayDir;
+
+    vec3 tMin = min(t0, t1);
+    vec3 tMax = max(t0, t1);
+ 
+    float tNear = max(max(tMin.x, tMin.y), tMin.z);
+    float tFar = min(min(tMax.x, tMax.y), tMax.z);
+
+    if (tNear > tFar || tFar <= Epsilon)
+        return noHit;
+
+    float t = tNear;
+    if (t <= Epsilon)
+        t = tFar;
+
+    vec3 localHitP = rayOri + t * rayDir;
+    vec3 localNormal = vec3(0.0);
+
+    if (abs(localHitP.x - boxMax.x) < Epsilon)
+        localNormal = vec3(1.0, 0.0, 0.0);
+    else if (abs(localHitP.x - boxMin.x) < Epsilon)
+        localNormal = vec3(-1.0, 0.0, 0.0);
+    else if (abs(localHitP.y - boxMax.y) < Epsilon)
+        localNormal = vec3(0.0, 1.0, 0.0);
+    else if (abs(localHitP.y - boxMin.y) < Epsilon)
+        localNormal = vec3(0.0, -1.0, 0.0);
+    else if (abs(localHitP.z - boxMax.z) < Epsilon)
+        localNormal = vec3(0.0, 0.0, 1.0);
+    else
+        localNormal = vec3(0.0, 0.0, -1.0);
+    
+    vec3 worldHitP = b.ori + b.rot * localHitP;
+    vec3 worldNormal = normalize(b.rot * localNormal);
+
+    hit = Hit(t, worldHitP, worldNormal, b.matId);
+
 	/* your implementation ends */
     
 	return hit;
