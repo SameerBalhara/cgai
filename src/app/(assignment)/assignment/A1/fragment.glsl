@@ -152,6 +152,29 @@ Hit hitSphere(const Ray r, const Sphere s)
     Hit hit = noHit;
 	
     /* your implementation starts */
+
+    vec3 scToRo = r.ori - s.ori;
+    
+    float a = dot(r.dir, r.dir);
+    float b = 2.0 * dot(scToRo, r.dir);
+    float c = dot(scToRo, scToRo) - s.r * s.r;
+    float discriminant = b * b - 4.0 * a * c;
+
+    if (discriminant < 0.0)
+        return noHit;
+
+    float t1 = (-b - sqrt(discriminant)) / (2.0 * a);
+    float t2 = (-b + sqrt(discriminant)) / (2.0 * a);
+
+    float t = t1;
+    if (t <= Epsilon)
+        t = t2;
+    if (t <= Epsilon)
+        return noHit;
+
+    vec3 hitPoint = r.ori + t * r.dir;
+    vec3 hitNormal = normalize(hitPoint - s.ori);
+    hit = Hit(t, hitPoint, hitNormal, s.matId);
     
 	/* your implementation ends */
     
