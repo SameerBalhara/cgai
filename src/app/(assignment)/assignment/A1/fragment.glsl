@@ -298,6 +298,16 @@ bool isShadowed(Light light, Hit h)
     bool shadowed = false;
 	
     /* your implementation starts */
+
+    vec3 lightDir = normalize(light.position - h.p);
+    float lightDist = length(light.position - h.p);
+
+    float shadowBias = 1e-4;
+    Ray shadowRay = Ray(h.p + shadowBias * h.normal, lightDir);
+    Hit shadowHit = findHit(shadowRay);
+
+    if (shadowHit.t > Epsilon && shadowHit.t < lightDist)
+        shadowed = true;
     
 	/* your implementation ends */
     
