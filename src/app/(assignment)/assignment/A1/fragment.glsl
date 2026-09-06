@@ -321,6 +321,10 @@ vec3 sampleDiffuse(int matId, vec3 p)
         vec3 color = materials[matId].kd;
 		
         /* your implementation starts */
+
+        vec2 uv = p.xz;
+        vec3 texColor = texture2D(floorTex, uv).rgb;
+        color = color * texColor;
         
 		/* your implementation ends */
         
