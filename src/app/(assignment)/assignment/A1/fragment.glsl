@@ -315,43 +315,56 @@ bool isShadowed(Light light, Hit h)
 }
 
 // TODO Step 4: Implement the texture mapping
-vec3 sampleDiffuse(int matId, vec3 p) 
+vec3 sampleDiffuse(int matId, vec3 p)
 {
-    if(matId == 0) {
-        vec3 color = materials[matId].kd;
+    vec3 color = materials[matId].kd;
 		
-        /* your implementation starts */
+    /* your implementation starts */
 
-        vec2 uv = p.xz;
-        vec3 texColor = texture2D(floorTex, uv).rgb;
-        color = color * texColor;
+    vec2 uv = p.xz;
+    vec3 texColor = texture2D(floorTex, uv).rgb;
+    color = color * texColor;
         
-		/* your implementation ends */
-        
-		return color;
-    }
-    return materials[matId].kd;
+	/* your implementation ends */
+
+    return color;
 }
 
-vec3 rayTrace(in Ray r, out Hit hit) 
+vec3 rayTrace(in Ray r, out Hit hit)
 {
-    vec3 col = vec3(0);
     Hit h = findHit(r);
     hit = h;
-    if(h.t > 0. && h.t < 1e8) {
-        // shading
-        for(int i = 0; i < lights.length(); i++) {
-            if(isShadowed(lights[i], h)) {
-                col += materials[h.matId].ka * lights[i].Ia;
-            } else {
-                vec3 e = camera.origin;
-                vec3 p = h.p;
-                vec3 s = lights[i].position;
-                vec3 n = h.normal;
-                col += shading_phong(lights[i], h.matId, e, p, s, n);
-            }
+
+    if (h.t <= 0.0 || h.t >= 1e8)
+        return vec3(0.0);
+
+    // lightbulb light source
+    if (h.matId == 2)
+        return vec3(1.0, 0.85, 0.60);
+
+    vec3 col = vec3(0.0);
+
+    for (int i = 0; i < lights.length(); i++) {
+        Light light = lights[i];
+
+        // Lamp light fades as distance increases
+        if (i == 0) {
+            vec3 delta = light.position - h.p;
+            float attenuation = 2.0 / (1.0 + dot(delta, delta));
+            light.Id *= attenuation;
+            light.Is *= attenuation;
+        }
+
+        if (isShadowed(light, h)) {
+            col += materials[h.matId].ka * light.Ia;
+        } else {
+            col += shading_phong(
+                light, h.matId, r.ori,
+                h.p, light.position, h.normal
+            );
         }
     }
+
     return col;
 }
 
@@ -388,66 +401,94 @@ mat3 getRotXYZ(float pitch, float yaw, float roll)
 void initScene() 
 {
     float aspectRatio = iResolution.x / iResolution.y;
-    vec3 origin = vec3(0., 2.8, 3);
-    vec3 lookAt = normalize(vec3(0.,0.45,0.) - origin);
+    vec3 origin = vec3(0., 2.6, 3.2);
+    vec3 lookAt = normalize(vec3(-0.15, 0.35, 0.15) - origin);
     vec3 up = vec3(0, 1, 0);
     vec3 right = normalize(cross(lookAt, up));
     up = normalize(cross(right, lookAt));
     camera = Camera(origin, lookAt, up, right, aspectRatio);
 
-    // Floor Material 
-    materials[0].ka = vec3(0.05);
-    materials[0].kd = vec3(0.5);
-    materials[0].ks = vec3(0.8);
-    materials[0].shininess = 10.0;
-    materials[0].kr = 0.3 * materials[0].ks;
+    // desktop
+    materials[0].ka = vec3(0.04);
+    materials[0].kd = vec3(0.55, 0.48, 0.40);
+    materials[0].ks = vec3(0.18);
+    materials[0].shininess = 28.0;
+    materials[0].kr = vec3(0.04);
 
-    materials[1].ka = vec3(0.0);
-    materials[1].kd = vec3(0.0);
-    materials[1].ks = vec3(0.95);
-    materials[1].shininess = 512.;
-    materials[1].kr = 0.8 * materials[1].ks;
+    // Blue notebook
+    materials[3].ka = vec3(0.02);
+    materials[3].kd = vec3(0.08, 0.18, 0.42);
+    materials[3].ks = vec3(0.18);
+    materials[3].shininess = 64.0;
+    materials[3].kr = vec3(0.06);
 
-    materials[2].ka = vec3(0.0);
-    materials[2].kd = vec3(0.5);
-    materials[2].ks = vec3(0.5);
-    materials[2].shininess = 128.;
-    materials[2].kr = 0.5 * materials[2].ks;
+    // Red book
+    materials[4].ka = vec3(0.02);
+    materials[4].kd = vec3(0.48, 0.08, 0.055);
+    materials[4].ks = vec3(0.16);
+    materials[4].shininess = 64.0;
+    materials[4].kr = vec3(0.05);
 
-    materials[3].ka = vec3(0.0);
-    materials[3].kd = vec3(13, 71, 161) / 255.;
-    materials[3].ks = vec3(0.3);
-    materials[3].shininess = 128.;
-    materials[3].kr = 0.4 * materials[3].ks;
+    // Green cutting mat
+    materials[5].ka = vec3(0.02);
+    materials[5].kd = vec3(0.025, 0.22, 0.11);
+    materials[5].ks = vec3(0.04);
+    materials[5].shininess = 24.0;
+    materials[5].kr = vec3(0.015);
 
-    materials[4].ka = vec3(0.0);
-    materials[4].kd = vec3(183, 28, 28) / 255.;
-    materials[4].ks = 1.2 * materials[4].kd;
-    materials[4].shininess = 128.;
-    materials[4].kr = 0.6 * materials[4].ks;
-
-    materials[5].ka = vec3(0.0);
-    materials[5].kd = vec3(27, 94, 32) / 255.;
-    materials[5].ks = 0.2 * materials[5].kd;
-    materials[5].shininess = 128.;
-    materials[5].kr = 0.5 * materials[5].ks;
-
-    lights[0] = Light(vec3(-4., 5., 2.5), 
-                            /*Ia*/ vec3(0.1, 0.1, 0.1), 
-                            /*Id*/ vec3(1.0, 1.0, 1.0), 
-                            /*Is*/ vec3(0.8, 0.8, 0.8));
-    lights[1] = Light(vec3(1.5, 4., 3.), 
-                            /*Ia*/ vec3(0.1, 0.1, 0.1), 
-                            /*Id*/ vec3(0.9, 0.9, 0.9), 
-                            /*Is*/ vec3(0.5, 0.5, 0.5));
     planes[0] = Plane(vec3(0., 1., 0.), vec3(0., 0., 0.), 0);
 
-    spheres[0] = Sphere(vec3(0., 1.5, 0.), 0.5, 1);
-    spheres[1] = Sphere(vec3(-0.6, 0.4, 1.1), 0.4, 2);
+    // Cutting mat top surface
+boxes[2] = Box(
+    vec3(0.15, 0.025, 0.25),
+    vec3(1.45, 0.025, 0.85),
+    getRotXYZ(0.0, 0.0, 0.0),
+    5
+);
 
-    boxes[0] = Box(vec3(0., 0.5, 0.), vec3(0.5), getRotXYZ(0., 0., 0.), 3);
-    boxes[1] = Box(vec3(-1.2, 0.85, 0.0), vec3(0.4, 0.85, 0.4), getRotXYZ(0., 0.4 * M_PI, 0.), 4);
-    boxes[2] = Box(vec3(0.8, 0.3, 0.8), vec3(0.75, 0.3, 0.3), getRotXYZ(0., 0.2 * M_PI, 0.), 5);
+boxes[0] = Box(
+    vec3(-0.55, 0.14, 0.25),
+    vec3(0.62, 0.09, 0.48),
+    getRotXYZ(0.0, -0.025 * M_PI, 0.0),
+    3
+);
+
+// Top red book laid flat
+// Bottom = 0.23, top = 0.41.
+boxes[1] = Box(
+    vec3(-0.45, 0.32, 0.12),
+    vec3(0.09, 0.56, 0.42),
+    getRotXYZ(0.0, 0.035 * M_PI, 0.0)
+        * getRotXYZ(0.0, 0.0, 0.5 * M_PI),
+    4
+);
+
+// Partially exposed bulb
+spheres[0] = Sphere(vec3(0.65, 2.28, -0.25), 0.48, 1);
+spheres[1] = Sphere(vec3(0.65, 1.86, -0.07), 0.24, 2);
+
+materials[1].ka = vec3(0.025);
+materials[1].kd = vec3(0.035);
+materials[1].ks = vec3(0.25);
+materials[1].shininess = 64.0;
+materials[1].kr = vec3(0.03);
+
+// The bulb hosts its own color
+materials[2].kr = vec3(0.0);
+
+lights[0] = Light(
+    vec3(0.65, 1.60, -0.07),
+    vec3(0.025, 0.020, 0.015),
+    vec3(2.4, 1.85, 1.15),
+    vec3(1.2, 0.95, 0.65)
+);
+
+lights[1] = Light(
+    vec3(2.3, 3.0, 2.4),
+    vec3(0.04, 0.05, 0.07),
+    vec3(0.06, 0.08, 0.12),
+    vec3(0.04, 0.05, 0.08)
+);
 }
 
 // TODO Step 5: Change the value of numberOfSampling to 50
