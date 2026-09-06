@@ -454,7 +454,7 @@ void initScene()
 
 /* your implementation starts */
 
-const int numberOfSampling = 1;
+const int numberOfSampling = 50;
 
 /* your implementation ends */
 
@@ -482,6 +482,9 @@ void main()
         // TODO Step 5: Define the reflected ray and assign this ray to recursive_ray
         
 		/* your implementation starts */
+
+        vec3 reflectedDir = normalize(reflect(recursive_ray.dir, hit.normal));
+        recursive_ray = Ray(hit.p + 1e-4 * hit.normal, reflectedDir);
         
 		/* your implementation ends */
     }
