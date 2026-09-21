@@ -48,7 +48,7 @@ float sdfBox(vec3 p, vec3 c, vec3 b)
     //// your implementation starts
     
     vec3 q = abs(p - c) - b;
-    return length(max(0.0, q)) + min(max(q.x, max(q.y, q.z)), 0.0);
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
  
     //// your implementation ends
 }
@@ -168,6 +168,13 @@ float rayMarching(vec3 origin, vec3 dir)
     {
         //// your implementation starts
 
+        vec3 p = origin + dir * s;
+        float d = sdf(p);
+
+        if (d < 0.01 || s > 20.0) { break; }
+
+        s += d;
+
         //// your implementation ends
     }
     
@@ -191,7 +198,9 @@ vec3 normal(vec3 p)
 
     //// your implementation starts
     
-    return vec3(0.0, 0.0, 0.0);
+    vec3 n = vec3(s - sdf(p - vec3(dx, 0.0, 0.0)), s - sdf(p - vec3(0.0, dx, 0.0)), s - sdf(p - vec3(0.0, 0.0, dx)));
+
+    return normalize(n);
 
     //// your implementation ends
 }
@@ -233,6 +242,11 @@ vec3 phong_shading(vec3 p, vec3 n)
 
     //// your implementation for coloring starts
 
+    if (p.y < 0.0) { color = vec3(0.35, 0.35, 0.35); }
+    else if (p.x < -1.5) { color = vec3(0.9, 0.2, 0.2); }
+    else if (p.x < -0.5) { color = vec3(0.2, 0.8, 0.3); }
+    else if (p.x < 0.5) { color = vec3(0.2, 0.4, 0.95); }
+    else { color = vec3(0.8, 0.25, 0.85); }
 
     //// your implementation for coloring ends
 
