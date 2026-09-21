@@ -27,7 +27,7 @@ float sdfSphere(vec3 p, vec3 c, float r)
 {
     //// your implementation starts
     
-    return 0.0;
+    return length(p - c) - r;
     
     //// your implementation ends
 }
@@ -37,7 +37,7 @@ float sdfPlane(vec3 p, float h)
 {
     //// your implementation starts
     
-    return 0.0;
+    return p.y - h;
     
     //// your implementation ends
 }
@@ -47,8 +47,9 @@ float sdfBox(vec3 p, vec3 c, vec3 b)
 {
     //// your implementation starts
     
-    return 0.0;
-    
+    vec3 q = abs(p - c) - b;
+    return length(max(0.0, q)) + min(max(q.x, max(q.y, q.z)), 0.0);
+ 
     //// your implementation ends
 }
 
@@ -65,7 +66,7 @@ float sdfIntersection(float s1, float s2)
 {
     //// your implementation starts
     
-    return s1;
+    return max(s1, s2);
 
     //// your implementation ends
 }
@@ -74,7 +75,7 @@ float sdfUnion(float s1, float s2)
 {
     //// your implementation starts
     
-    return s1;
+    return min(s1, s2);
 
     //// your implementation ends
 }
@@ -83,7 +84,7 @@ float sdfSubtraction(float s1, float s2)
 {
     //// your implementation starts
     
-    return s1;
+    return max(s1, -s2);
 
     //// your implementation ends
 }
@@ -131,6 +132,19 @@ float sdf(vec3 p)
     
     //// your implementation starts
     
+    float plane1 = sdfPlane(p, plane1_h);
+    float sphere1 = sdfSphere(p, sphere1_c, sphere1_r);
+    float box1 = sdfBox(p, box1_c, box1_b);
+    float box2 = sdfBox(p, box2_c, box2_b);
+    float sphere2 = sdfSphere(p, sphere2_c, sphere2_r);
+
+    float box_sphere_subtract = sdfSubtraction(box2, sphere2);
+    float sphere3 = sdfSphere(p, sphere3_c, sphere3_r);
+    float sphere4 = sdfSphere(p, sphere4_c, sphere4_r);
+    float sphere_sphere_intersect = sdfIntersection(sphere3, sphere4);
+
+    s = sdfUnion(sdfUnion(sdfUnion(plane1, sphere1), box1), 
+    sdfUnion(box_sphere_subtract, sphere_sphere_intersect));
 
     //// your implementation ends
 
