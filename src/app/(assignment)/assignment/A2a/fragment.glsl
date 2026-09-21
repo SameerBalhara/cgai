@@ -169,7 +169,7 @@ float rayMarching(vec3 origin, vec3 dir)
         //// your implementation starts
 
         vec3 p = origin + dir * s;
-        float d = sdf(p);
+        float d = sdf2(p); 
 
         if (d < 0.01 || s > 20.0) { break; }
 
@@ -193,12 +193,12 @@ float rayMarching(vec3 origin, vec3 dir)
 //// normal: p - query point
 vec3 normal(vec3 p)
 {
-    float s = sdf(p);          //// sdf value in p
+    float s = sdf2(p);          //// sdf value in p
     float dx = 0.01;           //// step size for finite difference
 
     //// your implementation starts
     
-    vec3 n = vec3(s - sdf(p - vec3(dx, 0.0, 0.0)), s - sdf(p - vec3(0.0, dx, 0.0)), s - sdf(p - vec3(0.0, 0.0, dx)));
+    vec3 n = vec3(s - sdf2(p - vec3(dx, 0.0, 0.0)), s - sdf2(p - vec3(0.0, dx, 0.0)), s - sdf2(p - vec3(0.0, 0.0, dx)));
 
     return normalize(n);
 
@@ -219,9 +219,7 @@ vec3 normal(vec3 p)
 vec3 phong_shading(vec3 p, vec3 n)
 {
     //// background
-    if(p.z > 10.0){
-        return vec3(0.9, 0.6, 0.2);
-    }
+    if (p.z > 10.0) { return vec3(0.16, 0.38, 0.72); }
 
     //// phong shading
     vec3 lightPos = vec3(4.*sin(iTime), 4., 4.*cos(iTime));  
@@ -242,11 +240,8 @@ vec3 phong_shading(vec3 p, vec3 n)
 
     //// your implementation for coloring starts
 
-    if (p.y < 0.0) { color = vec3(0.35, 0.35, 0.35); }
-    else if (p.x < -1.5) { color = vec3(0.9, 0.2, 0.2); }
-    else if (p.x < -0.5) { color = vec3(0.2, 0.8, 0.3); }
-    else if (p.x < 0.5) { color = vec3(0.2, 0.4, 0.95); }
-    else { color = vec3(0.8, 0.25, 0.85); }
+    if (p.y < 0.0) {color = vec3(0.12, 0.38, 0.12); } 
+    else {color = vec3(0.92, 0.95, 1.0); }
 
     //// your implementation for coloring ends
 
@@ -259,16 +254,89 @@ vec3 phong_shading(vec3 p, vec3 n)
 //// Call sdf2 in your ray marching function to render your customized scene.
 /////////////////////////////////////////////////////
 
+// Source: https://iquilezles.org/articles/smin/
+// Function is polynomial smooth minimum
+float smoothUnion(float d1, float d2, float k)
+{
+    float h = clamp(0.5 + 0.5 * (d2 - d1) / k, 0.0, 1.0);
+    return mix(d2, d1, h) - k * h * (1.0 - h);
+}
+
+float sdfCloud(vec3 p, vec3 c)
+{
+    float phase = c.x * 2.0 + c.z;
+    float swell = 0.04 * sin(iTime * 0.75 + phase);
+
+    float cloud = sdfSphere(p, c, 0.45 + swell);
+
+    cloud = smoothUnion(
+        cloud,
+        sdfSphere(
+            p,
+            c + vec3(
+                -0.43 + 0.06 * sin(iTime * 0.60 + phase),
+                -0.05 + 0.04 * cos(iTime * 0.80 + phase),
+                0.0
+            ),
+            0.32 - swell
+        ),
+        0.28
+    );
+
+    cloud = smoothUnion(
+        cloud,
+        sdfSphere(
+            p,
+            c + vec3(
+                0.42 + 0.05 * cos(iTime * 0.70 + phase),
+                0.02 + 0.04 * sin(iTime * 0.90 + phase),
+                0.02
+            ),
+            0.36 + swell
+        ),
+        0.30
+    );
+
+    cloud = smoothUnion(
+        cloud,
+        sdfSphere(
+            p,
+            c + vec3(
+                0.05 + 0.05 * sin(iTime * 0.65 + phase),
+                0.32 + 0.06 * sin(iTime * 0.85 + phase),
+                0.0
+            ),
+            0.30
+        ),
+        0.28
+    );
+
+    return cloud;
+}
+
 //// sdf2: p - query point
 float sdf2(vec3 p)
 {
-    float s = 0.;
+    float ground = sdfPlane(p, -0.1);
 
-    //// your implementation starts
+    float cloud1 = sdfCloud(
+        p,
+        vec3(-1.45 + 0.18 * sin(iTime * 0.16), 1.50, 0.45)
+    );
 
-    //// your implementation ends
+    float cloud2 = sdfCloud(
+        p,
+        vec3(0.15 + 0.16 * sin(iTime * 0.14 + 1.0), 2.10, 1.65)
+    );
 
-    return s;
+    float cloud3 = sdfCloud(
+        p,
+        vec3(1.75 + 0.14 * sin(iTime * 0.18 + 2.0), 1.32, 2.55)
+    );
+
+    float clouds = sdfUnion(cloud1, sdfUnion(cloud2, cloud3));
+
+    return sdfUnion(ground, clouds);
 }
 
 /////////////////////////////////////////////////////
